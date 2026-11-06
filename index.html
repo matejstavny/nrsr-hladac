@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hľadač prepisov NRSR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0}
+/* Layout: one narrow reading column; the draggable button is the single loud element, everything else is quiet civic paper. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#17202b; --muted:#5a6675; --line:#dfe3e8;
+  --accent:#0b4ea2; --accent-fg:#ffffff; --mark:#ffe27a; --mark-fg:#17202b; --code:#eef1f5; --ok-bg:#dff3e4; --ok-fg:#1d6b35;
+  --display:"Newsreader", Georgia, "Times New Roman", serif;
+  --body:"Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --surface:#18202a; --fg:#e6ebf1; --muted:#9aa7b6; --line:#2a3542;
+  --accent:#5b9bf0; --accent-fg:#0b1420; --mark:#e9c54a; --mark-fg:#10151c; --code:#202b38; --ok-bg:#16351f; --ok-fg:#8fd9a5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --surface:#18202a; --fg:#e6ebf1; --muted:#9aa7b6; --line:#2a3542;
+  --accent:#5b9bf0; --accent-fg:#0b1420; --mark:#e9c54a; --mark-fg:#10151c; --code:#202b38; --ok-bg:#16351f; --ok-fg:#8fd9a5; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body)}
+.wrap{max-width:44rem;margin:0 auto;padding-block:40px 64px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:36px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font:600 clamp(32px,6vw,44px)/1.08 var(--display);margin:10px 0 12px;text-wrap:balance}
+h2{font:600 22px/1.25 var(--display);margin:0 0 12px;text-wrap:balance}
+p{margin:0}
+.lead{color:var(--muted);max-width:38rem}
+section{display:flex;flex-direction:column;gap:12px}
+.install{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.drag{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:var(--accent-fg);text-decoration:none;font:600 16px/1 var(--body);padding:14px 18px;border-radius:8px;cursor:grab;border:2px dashed transparent}
+.drag:active{cursor:grabbing}
+.drag:focus-visible,button:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+.drag svg{flex:none}
+.hint{font-size:14px;color:var(--muted)}
+ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px}
+ol li::marker{font:500 14px var(--mono);color:var(--muted)}
+kbd{font:500 13px var(--mono);background:var(--code);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px}
+.alt{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:10px}
+.alt summary{cursor:pointer;font-weight:600}
+.alt details[open] summary{margin-bottom:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:600 14px var(--body);background:var(--code);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer}
+textarea{width:100%;min-height:90px;font:12px/1.4 var(--mono);background:var(--code);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical;box-sizing:border-box}
+.status{font-size:14px;color:var(--muted)}
+/* sample result row, mirrors the real panel */
+.sample{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.sample .meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:12px 16px 4px;font-size:13px;color:var(--muted)}
+.sample .meta b{color:var(--fg);font-size:14px}
+.sample .tc{margin-left:auto;font:500 13px var(--mono);font-variant-numeric:tabular-nums;color:var(--fg);display:inline-flex;gap:8px;align-items:baseline}
+.sample .pill{font:600 11px var(--body);padding:1px 7px;border-radius:9px;background:var(--ok-bg);color:var(--ok-fg)}
+.sample .sn{padding:0 16px 14px;font-size:15px}
+.sample mark{background:var(--mark);color:var(--mark-fg);border-radius:2px;padding:0 2px}
+.sample .cap{border-top:1px solid var(--line);padding:8px 16px;font-size:12px;color:var(--muted)}
+ul.notes{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:8px;color:var(--fg)}
+code{font:13px var(--mono);background:var(--code);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">tv.nrsr.sk · archív schôdzí · aktualizuje sa sám</div>
+    <h1>Hľadač prepisov NRSR</h1>
+    <p class="lead">Nájde vetu v prepise rokovania, pustí video presne na to miesto a v režime Strih z neho stiahne klip ako MP4. Funguje ako záložka v prehliadači, ktorú spustíš priamo na stránke schôdze. Presný čas dopočúva Whisper bežiaci priamo v tvojom prehliadači.</p>
+  </header>
+
+  <section class="install" aria-labelledby="inst">
+    <h2 id="inst">Inštalácia (raz)</h2>
+    <ol>
+      <li>Zapni si lištu záložiek: <kbd>⌘</kbd> <kbd>Shift</kbd> <kbd>B</kbd> na Macu, <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd> na Windows.</li>
+      <li>Chyť modré tlačidlo nižšie myšou a pretiahni ho na lištu záložiek.</li>
+    </ol>
+    <a class="drag" id="bm" href="#" title="Pretiahni ma na lištu záložiek">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.4"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Hľadať v NRSR
+    </a>
+    <p class="hint" id="clickhint">Kliknutie tu nič neurobí – tlačidlo treba pretiahnuť.</p>
+    <p class="hint">Záložka si pri každom spustení načíta najnovšiu verziu hľadača, takže ju už nikdy nemusíš vymieňať. Ak máš starú záložku „Hľadať v NRSR 2“, môžeš ju zmazať.</p>
+
+    <div class="alt">
+      <details>
+        <summary>Pretiahnutie nefunguje? (napr. Safari)</summary>
+        <ol>
+          <li>Skopíruj kód tlačidlom nižšie.</li>
+          <li>Pridaj si ľubovoľnú stránku do záložiek (<kbd>⌘</kbd> <kbd>D</kbd> / <kbd>Ctrl</kbd> <kbd>D</kbd>) a pomenuj ju „Hľadať v NRSR“.</li>
+          <li>Záložku uprav (pravý klik → Upraviť adresu) a celú adresu nahraď skopírovaným kódom.</li>
+        </ol>
+        <div class="row" style="margin-top:10px">
+          <button type="button" id="copy">Kopírovať kód záložky</button>
+          <span class="status" id="copystatus" role="status"></span>
+        </div>
+        <textarea id="code" readonly aria-label="Kód záložky" hidden></textarea>
+      </details>
+    </div>
+  </section>
+
+  <section aria-labelledby="use">
+    <h2 id="use">Ako to použiť</h2>
+    <ol>
+      <li>Na <a href="https://tv.nrsr.sk/archiv/schodza" target="_blank" rel="noopener">tv.nrsr.sk → Archív → Schôdze</a> otvor konkrétnu schôdzu (napr. 49. schôdza).</li>
+      <li>Klikni na záložku <b>Hľadať v NRSR</b>. Vpravo sa otvorí panel a načíta prepisy zvoleného dňa (asi 20 sekúnd, stránka NRSR obmedzuje rýchlosť).</li>
+      <li>Píš vetu alebo jej časť. Diakritika, veľké písmená ani čiarky nerozhodujú, takže stačí <code>dokedy budeme takymto sposobom</code>.</li>
+      <li>Klikni na výsledok. Video hneď skočí na približné miesto a pri výsledku sa objaví <b>hľadám…</b>. O 10–40 sekúnd sa zmení na <b>presne</b> a prehrávač preskočí na koniec pauzy tesne pred vetou.</li>
+      <li>Pri prvom použití sa stiahne model Whisper (asi 1,6 GB) a pri prvom sťahovaní klipu nástroj na strih (asi 30 MB). Prehliadač si ich uloží, takže ďalšie použitie už nič nesťahuje.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="cut">
+    <h2 id="cut">Strih a sťahovanie</h2>
+    <ol>
+      <li>V paneli zapni prepínač <b>Strih</b>. Prehliadač si zapamätá, či ho máš zapnutý. Kto nesťahuje, nechá ho vypnutý a nič navyše nevidí.</li>
+      <li>Pri výsledku klikni <b>✂ Strih</b>. Otvorí sa celý prepis vystúpenia s vyznačenou vetou: zelená značka <b>IN</b> na jej začiatku, červená <b>OUT</b> na konci.</li>
+      <li>Značky ťahaj myšou po slovách alebo klikni na slovo, posunie sa k nemu bližšia značka. Po pustení Whisper dopočíta presný čas, zvyčajne za 5–15 sekúnd.</li>
+      <li>Skontroluj výber tlačidlom <b>▶ Prehrať výber</b>. Doladiť ho môžeš tlačidlami ±0,5 s alebo počas prehrávania klávesmi <kbd>I</kbd> a <kbd>O</kbd>, rovnako ako v strihovom programe.</li>
+      <li>Vyber rezervu (1, 2 alebo 5 s) a klikni <b>⬇ Stiahnuť MP4</b>. Klip sa stiahne v pôvodnej kvalite bez prekódovania, zvyčajne za pár sekúnd.</li>
+    </ol>
+    <p class="hint">Klip začína na kľúčovom snímku tesne pred IN mínus rezerva, takže pred vetou má zvolenú rezervu a najviac 2 s navyše. Za vetou má presne zvolenú rezervu. Veta tak nikdy nebude useknutá. Súbor sa sám pomenuje, napríklad <code>2026-04-29_Gaspar_11-55-16_dokedy-budeme-takymto-sposobom-hrotit.mp4</code>.</p>
+  </section>
+
+  <section aria-labelledby="ex">
+    <h2 id="ex">Takto vyzerá výsledok</h2>
+    <div class="sample">
+      <div class="meta"><b>Tibor Gašpar</b><span>Vystúpenie v rozprave</span><span class="tc">28.11.2023 9:23:07.6 <span class="pill">presne</span></span></div>
+      <div class="sn">… v rámci tej argumentácie sa hovorí, <mark>že to oznámenie smerovalo,</mark> a teraz dokončím, aj na čelných predstaviteľov …</div>
+      <div class="cap">Čas je reálny čas v sále. Ikonka vedľa neho skopíruje celé sekundy, hodí sa do poznámok k strihu. Kým beží Whisper, je pri čase „odhad“.</div>
+    </div>
+  </section>
+
+  <section aria-labelledby="notes">
+    <h2 id="notes">Dobré vedieť</h2>
+    <ul class="notes">
+      <li><b>Ako funguje presnosť:</b> časy vystúpení od NRSR bývajú nespoľahlivé, pri starších záznamoch aj o desiatky minút. Hľadač preto stiahne iba zvuk, dá ho prepísať Whisperu a porovná rozpoznané slová s oficiálnym prepisom. Kroky opakuje, kým vetu nenájde, a výsledok nakoniec prichytí na koniec pauzy pred vetou podľa hlasitosti.</li>
+      <li><b>Čo potrebuješ:</b> prehliadač s WebGPU (aktuálny Chrome alebo Safari na Macu s čipom M). Na počítači bez WebGPU ostane len odhad.</li>
+      <li><b>Pamäť:</b> každý už prepísaný úsek si prehliadač pamätá, takže opakované hľadanie v tej istej rozprave je rýchlejšie.</li>
+      <li><b>Pokazené videá:</b> niektoré embed odkazy NRSR (aj <code>/video/vystupenie/367459</code>) ukazujú na adresu <code>/events_dvr/…</code>, ktorá vracia chybu 404. To isté video leží na <code>/store/…</code> a hľadač ho púšťa odtiaľ.</li>
+      <li><b>Rozsah:</b> v paneli si vyberieš deň schôdze. Voľba „Celá schôdza“ funguje tiež, ale pri dlhých schôdzach (stovky strán) to trvá niekoľko minút.</li>
+      <li><b>Filter rečníka</b> zúži výsledky na jedného poslanca.</li>
+      <li><b>Kvalita klipov:</b> novšie záznamy sú v 1080p (minúta asi 20 MB), staršie, napríklad z roku 2023, v 720p (minúta asi 7 MB). Klip má presne kvalitu záznamu NRSR.</li>
+      <li>Ak panel napíše, že stránka žiada overenie, obnov stránku schôdze (<kbd>F5</kbd>) a klikni na záložku znova.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+// The bookmark only loads hladac.js from the same place as this page, so updates reach everyone automatically.
+const BASE = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
+const LOADER = "(()=>{const e=document.getElementById('nrsr-hladac');if(e){e.style.display='flex';return}" +
+  "if(location.hostname!=='tv.nrsr.sk'){alert('H\\u013eada\\u010d prepisov: otvor str\\u00e1nku sch\\u00f4dze na tv.nrsr.sk a klikni znova.');return}" +
+  "const s=document.createElement('script');s.src='" + BASE + "hladac.js?v='+Math.floor(Date.now()/6e5);" +
+  "s.onerror=()=>alert('H\\u013eada\\u010d sa nepodarilo na\\u010d\\u00edta\\u0165 \\u2013 skontroluj pripojenie na internet.');document.head.appendChild(s)})()";
+const BOOKMARKLET = 'javascript:' + encodeURIComponent(LOADER);
+if (!/^https?:/.test(location.protocol)) document.getElementById('clickhint').textContent = 'Túto stránku otvor z GitHub Pages (https://…github.io/…), z disku záložka nebude fungovať.';
+const bm = document.getElementById('bm');
+bm.setAttribute('href', BOOKMARKLET);
+bm.addEventListener('click', e => {
+  e.preventDefault();
+  const h = document.getElementById('clickhint');
+  h.textContent = 'Tlačidlo treba chytiť a pretiahnuť na lištu záložiek, kliknutie tu nefunguje.';
+});
+const ta = document.getElementById('code');
+ta.value = BOOKMARKLET;
+document.getElementById('copy').addEventListener('click', async () => {
+  const st = document.getElementById('copystatus');
+  try {
+    await navigator.clipboard.writeText(BOOKMARKLET);
+    st.textContent = 'Skopírované.';
+  } catch (_) {
+    ta.hidden = false; ta.focus(); ta.select();
+    st.textContent = 'Kód je označený nižšie, skopíruj ho cez ⌘C / Ctrl+C.';
+  }
+});
+</script>
+
+</body>
+</html>
